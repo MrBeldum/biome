@@ -236,7 +236,7 @@ mod tests {
                     JsParserOptions::default(),
                 )
                 .into();
-                ParsedSnippet::new(&db, parsed, range, range, start, 0)
+                ParsedSnippet::new(&db, parsed, range, range, start, 0, false)
             })
             .collect();
         let path = Utf8PathBuf::from("src/file.js");

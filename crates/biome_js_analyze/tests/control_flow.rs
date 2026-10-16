@@ -260,6 +260,7 @@ fn cfg_queries_use_the_supplied_snippet_with_identical_content() {
         TextRange::default(),
         10.into(),
         0,
+        false,
     );
     let second = ParsedSnippet::new(
         &db,
@@ -268,6 +269,7 @@ fn cfg_queries_use_the_supplied_snippet_with_identical_content() {
         TextRange::default(),
         100.into(),
         0,
+        false,
     );
     let source = ParsedSource::new(
         &db,

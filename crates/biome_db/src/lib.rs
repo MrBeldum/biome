@@ -96,6 +96,14 @@ pub struct ParsedSnippet {
     /// The file source of the document
     #[returns(copy)]
     pub document_source_index: usize,
+
+    /// Whether the embedded content was decoded from HTML entities
+    /// before parsing. When true, positions in the parsed tree may not
+    /// match host positions after a length-changing entity, so code
+    /// actions must not be offered for this snippet: an applied edit
+    /// would land at the wrong host bytes.
+    #[returns(copy)]
+    pub was_decoded: bool,
 }
 
 impl ParsedSnippet {

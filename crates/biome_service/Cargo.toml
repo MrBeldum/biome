@@ -89,6 +89,7 @@ crossbeam                = { workspace = true }
 either                   = { workspace = true }
 enumflags2               = { workspace = true, features = ["serde"] }
 getrandom                = { workspace = true, features = ["js"] }
+htmlize                  = { workspace = true }
 ignore                   = { workspace = true }
 notify                   = { workspace = true, features = ["crossbeam-channel"] }
 papaya                   = { workspace = true }

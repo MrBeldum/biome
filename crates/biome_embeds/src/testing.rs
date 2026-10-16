@@ -114,6 +114,7 @@ pub(crate) fn parse_html_source_with_js_snippet(db: &TestDb, html: &str, js: &st
         TextRange::new(content_start, content_end),
         content_start,
         3,
+        false,
     );
     let file = ParsedSource::new(db, path.clone(), parsed, 2, vec![snippet]);
     db.insert_file(path.clone(), file);
@@ -165,6 +166,7 @@ pub(crate) fn parse_vue_source_with_js_snippets(
                 content_range,
                 content_range.start(),
                 *source_index,
+                false,
             )
         })
         .collect();

@@ -152,6 +152,7 @@ fn semantic_queries_cache_offset_snippets() {
         TextRange::default(),
         100.into(),
         0,
+        false,
     );
     let _source = ParsedSource::new(
         &db,

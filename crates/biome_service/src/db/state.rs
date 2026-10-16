@@ -881,6 +881,7 @@ fn create_parsed_snippets(
                 content.content_range,
                 content.content_offset,
                 index,
+                content.was_decoded,
             )
         })
         .collect()

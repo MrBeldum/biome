@@ -25,6 +25,7 @@ use biome_languages::javascript::{JsEmbeddingKind, SvelteEmbeddingKind, SvelteFi
 use biome_languages::{CssFileSource, HtmlFileSource, JsFileSource, JsonFileSource};
 use biome_parser::AnyParse;
 use biome_rowan::{AstNode, AstNodeList, AstSeparatedList};
+use std::borrow::Cow;
 
 pub(crate) fn parse_embedded_nodes(params: ParseEmbeddedParams) -> ParseEmbedResult {
     let ParseEmbeddedParams {
@@ -698,6 +699,7 @@ fn build_text_expression_directive_candidate(
             content_range: content_token.text_range(),
             content_offset: content_token.text_range().start(),
             text: content_token.token_text(),
+            was_decoded: false,
         },
         is_event_handler: false,
         is_class_attribute: false,
@@ -725,6 +727,7 @@ fn build_attribute_expression_candidate(
             content_range: content_token.text_range(),
             content_offset: content_token.text_range().start(),
             text: content_token.token_text(),
+            was_decoded: false,
         },
         is_event_handler: false,
         is_class_attribute,
@@ -743,6 +746,7 @@ fn build_astro_frontmatter_candidate(element: &AstroEmbeddedContent) -> Option<E
             content_range,
             content_offset: content_range.start(),
             text: content_token.token_text_trimmed(),
+            was_decoded: false,
         },
     })
 }
@@ -758,6 +762,7 @@ fn build_svelte_name_candidate(svelte_name: &SvelteName) -> Option<EmbedCandidat
             content_range: token.text_range(),
             content_offset: token.text_range().start(),
             text: token.token_text(),
+            was_decoded: false,
         },
         block_kind: EmbedBlockKind::Neutral,
     })
@@ -774,6 +779,7 @@ fn build_svelte_text_expression_candidate(
             content_range: content_token.text_range(),
             content_offset: content_token.text_range().start(),
             text: content_token.token_text(),
+            was_decoded: false,
         },
         block_kind: EmbedBlockKind::from(svelte_block),
     })
@@ -801,6 +807,7 @@ fn build_vue_directive_candidate(
             content_range,
             content_offset: content_range.start(),
             text: inner_text,
+            was_decoded: false,
         },
         is_event_handler,
         is_class_attribute,
@@ -821,6 +828,7 @@ fn build_text_expression_candidate(expression: &HtmlTextExpression) -> Option<Em
             content_range: content_token.text_range(),
             content_offset: content_token.text_range().start(),
             text: content_token.token_text(),
+            was_decoded: false,
         },
         block_kind: EmbedBlockKind::Neutral,
     })
@@ -868,6 +876,7 @@ fn build_attribute_candidate(
             content_range,
             content_offset: content_range.start(),
             text,
+            was_decoded: false,
         },
     })
 }
@@ -942,6 +951,7 @@ fn build_html_candidate(element: &HtmlElement) -> Option<EmbedCandidate> {
             // Use full token text (including trivia) to match the untrimmed content_offset.
             // The parser needs text and offset to be consistent.
             text: value_token.token_text(),
+            was_decoded: false,
         },
     })
 }
@@ -999,6 +1009,7 @@ fn build_vue_css_v_bind_candidate(
             content_range,
             content_offset: content_range.start(),
             text,
+            was_decoded: false,
         },
         block_kind: EmbedBlockKind::Neutral,
     })
@@ -1065,6 +1076,14 @@ fn embedded_css_file_source(
     base.with_embedding_kind(embedding_kind)
 }
 
+/// Decode HTML entities in a `style` attribute value before it is parsed
+/// as CSS. Attribute values follow the WHATWG attribute-context rule: a
+/// bare named entity without `;` followed by an alphanumeric character
+/// or `=` is left literal, matching what browsers do.
+fn decode_style_attribute_entities(value: &str) -> Cow<'_, str> {
+    htmlize::unescape_attribute(value)
+}
+
 impl EmbedParseContext<'_, '_> {
     /// Runs the detector on a candidate and, if matched, parses the embed.
     /// Returns the raw `ParsedEmbed` for callers that need to inspect the
@@ -1109,7 +1128,7 @@ fn parse_matched_embed(
     ctx: &mut EmbedParseContext,
     embedded_file_source: Option<JsFileSource>,
 ) -> Option<ParsedEmbed> {
-    let content = candidate.content();
+    let mut content = candidate.content();
 
     match embed_match.guest {
         GuestLanguage::JsModule
@@ -1277,8 +1296,41 @@ fn parse_matched_embed(
                     options.css_modules = CssModulesKind::Classic;
                 }
             }
+            // Attribute values are HTML text, so entities such as `&quot;`
+            // are legal in them but unreadable to the CSS parser. Decode
+            // them before parsing a style attribute. `<style>` element
+            // content is raw text, so it is left untouched.
+            //
+            // Decoding shortens the text, so a diagnostic after a
+            // length-changing entity points earlier than its host
+            // position by the cumulative shrinkage (each `&quot;`
+            // shifts later spans by 5 bytes), potentially across
+            // token boundaries. The diagnostic itself still describes
+            // the real problem; remapping spans would require
+            // plumbing an offset map through the CSS tree sink and
+            // analyzer.
+            // Code actions are suppressed for decoded snippets instead
+            // (see `was_decoded`): an applied edit would land at the
+            // wrong host bytes.
+            let decoded;
+            let mut was_decoded = false;
+            let source = match candidate {
+                EmbedCandidate::Attribute { name, .. }
+                    if name.text().eq_ignore_ascii_case("style") =>
+                {
+                    decoded = decode_style_attribute_entities(content.text.text());
+                    // `htmlize` returns `Cow::Borrowed` when nothing
+                    // changed, so `Owned` means decoding altered the
+                    // text and positions in the parsed tree may no
+                    // longer match host positions.
+                    was_decoded = matches!(decoded, Cow::Owned(_));
+                    decoded.as_ref()
+                }
+                _ => content.text.text(),
+            };
+            content.was_decoded = was_decoded;
             let parse = parse_css_with_offset_and_cache(
-                content.text.text(),
+                source,
                 css_source,
                 content.content_offset,
                 ctx.cache,

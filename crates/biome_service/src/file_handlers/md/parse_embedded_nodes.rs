@@ -153,6 +153,7 @@ fn embed_content(element_range: TextRange, token: MarkdownSyntaxToken) -> EmbedC
         content_range,
         content_offset: content_range.start(),
         text: token.token_text(),
+        was_decoded: false,
     }
 }
 

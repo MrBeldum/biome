@@ -2030,6 +2030,7 @@ dependencies = [
  "either",
  "enumflags2",
  "getrandom 0.2.15",
+ "htmlize",
  "ignore",
  "insta",
  "mimalloc",

@@ -806,6 +806,7 @@ fn build_jsx_style_candidate(attribute: &JsxAttribute) -> Option<EmbedCandidate>
             content_range,
             content_offset: content_range.start(),
             text,
+            was_decoded: false,
         },
     })
 }
@@ -836,6 +837,7 @@ fn build_js_template_candidate(expr: &JsTemplateExpression) -> Option<EmbedCandi
             content_range: content_token.text_range(),
             content_offset: content_token.text_range().start(),
             text: content_token.token_text(),
+            was_decoded: false,
         },
     })
 }

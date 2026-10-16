@@ -148,6 +148,7 @@ fn snippet_query_tracks_its_parse_and_preserves_local_coordinates() {
         TextRange::default(),
         100.into(),
         0,
+        false,
     );
     let original = control_flow_model_from_snippet(&db, snippet).clone();
     db.take_events();

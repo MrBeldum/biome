@@ -249,6 +249,7 @@ mod tests {
             Default::default(),
             0.into(),
             0,
+            false,
         );
         let source_start = css_property_definitions_from_source(&db, file)[0]
             .range()

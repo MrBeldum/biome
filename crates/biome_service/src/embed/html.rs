@@ -383,5 +383,8 @@ fn resolve_style_attribute_language(
     let EmbedCandidate::Attribute { content, .. } = candidate else {
         return None;
     };
-    is_css_style_attribute_value(content.text.text()).then_some(GuestLanguage::Css)
+    // Detect on the decoded value: the colon itself may be entity-encoded
+    // (`color&#58; red`), and the raw value would fail the colon check.
+    let decoded = htmlize::unescape_attribute(content.text.text());
+    is_css_style_attribute_value(&decoded).then_some(GuestLanguage::Css)
 }

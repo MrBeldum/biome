@@ -161,6 +161,7 @@ pub fn build_html_db(fs: &MemoryFileSystem, files: &[HtmlTestFile<'_>]) -> Works
                     Default::default(),
                     0.into(),
                     source_index,
+                    false,
                 )
             })
             .collect();

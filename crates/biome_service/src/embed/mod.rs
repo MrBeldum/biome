@@ -28,4 +28,11 @@ pub(crate) struct EmbedContent {
 
     /// The raw text of the embedded content.
     pub text: TokenText,
+
+    /// Whether the embedded content was decoded from HTML entities
+    /// before parsing. When true, positions in the parsed tree may not
+    /// match host positions after a length-changing entity, so code
+    /// actions must not be offered for this snippet: an applied edit
+    /// would land at the wrong host bytes.
+    pub was_decoded: bool,
 }

@@ -1985,6 +1985,7 @@ mod tests {
             content_range,
             content_start,
             3,
+            false,
         );
         let path = parse_js_source(&db, source, vec![snippet]);
 

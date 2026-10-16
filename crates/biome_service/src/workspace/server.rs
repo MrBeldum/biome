@@ -1568,10 +1568,23 @@ impl WorkspaceServerWithDb<'_> {
                 } else {
                     String::new()
                 };
-                actions.extend(snippet_actions);
+                // Skip actions for snippets whose text was decoded
+                // before parsing: positions in the parsed tree may not
+                // match host positions after a length-changing entity,
+                // so an applied edit would land at the wrong host bytes.
+                // (The fixed root is still computed, but for
+                // attribute snippets it is never spliced back.)
+                if !embedded_snippet.was_decoded(&state.db) {
+                    actions.extend(snippet_actions);
+                }
                 errors += snippet_errors;
                 skipped_suggested_fixes += snippet_skipped_suggested_fixes;
-                if reconstruct_snippet {
+                // Never stage a spliced fix for a snippet whose text
+                // was decoded before parsing: the fixed text is in
+                // decoded coordinates and must not be written back
+                // into the host. (Attribute snippets would not match
+                // any splice site anyway, but do not rely on that.)
+                if reconstruct_snippet && !embedded_snippet.was_decoded(&state.db) {
                     let verbatim_ranges = cfg_select! {
                         feature = "html_embeds" => {
                             if should_format {
@@ -3935,6 +3948,13 @@ impl Workspace for WorkspaceServerWithDb<'_> {
             let ParsedSnippetOrigin::Workspace(embedded_snippet) = embedded_snippet else {
                 continue;
             };
+            // Skip code actions for snippets whose text was decoded
+            // before parsing: positions in the parsed tree may not match
+            // host positions after a length-changing entity, so an
+            // applied edit would land at the wrong host bytes.
+            if embedded_snippet.was_decoded(&*workspace_db) {
+                continue;
+            }
             let Some(file_source) = workspace_db
                 .source_from_index(embedded_snippet.document_source_index(&*workspace_db))
             else {

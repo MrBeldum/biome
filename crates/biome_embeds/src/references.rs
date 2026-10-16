@@ -312,6 +312,7 @@ mod tests {
             TextRange::new(TextSize::from(12), TextSize::from(21)),
             TextSize::from(12),
             1,
+            false,
         );
         let parsed = ParsedSource::new(db, path.clone(), parsed, 0, vec![snippet]);
         db.insert_file(path.clone(), parsed);
@@ -345,6 +346,7 @@ mod tests {
             TextRange::default(),
             TextSize::default(),
             1,
+            false,
         );
         let parsed = ParsedSource::new(db, path.clone(), parsed, 0, vec![snippet]);
         db.insert_file(path.clone(), parsed);

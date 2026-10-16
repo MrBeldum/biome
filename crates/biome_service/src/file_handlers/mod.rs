@@ -212,6 +212,13 @@ impl ParsedSnippetOrigin {
         }
     }
 
+    pub(crate) fn was_decoded(&self, db: &WorkspaceDb) -> bool {
+        match self {
+            Self::Workspace(snippet) => snippet.was_decoded(db),
+            Self::Interned { content, .. } => content.was_decoded,
+        }
+    }
+
     pub(crate) fn diagnostics<'a>(
         &'a self,
         db: &'a WorkspaceDb,

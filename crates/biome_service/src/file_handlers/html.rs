@@ -1114,7 +1114,13 @@ pub(super) fn lint_with_inspector(
                 continue;
             };
             let offset = snippet.content_offset(&params.workspace_db);
-            let snippet_params = params.for_snippet(&snippet, language);
+            let mut snippet_params = params.for_snippet(&snippet, language);
+            // Suppress fix suggestions for snippets whose text was
+            // decoded before parsing: suggestion spans are in decoded
+            // coordinates and would land at the wrong host bytes.
+            if snippet.was_decoded(&params.workspace_db) {
+                snippet_params.pull_code_actions = false;
+            }
             let analyzer = if language.to_js_file_source().is_some() {
                 LintSnippetAnalyzer::new(
                     snippet_params,
