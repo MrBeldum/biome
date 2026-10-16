@@ -1,0 +1,36 @@
+---
+source: crates/biome_cli/src/execute/migrate/eslint_to_biome.rs
+expression: object_initialized_override.jsonc
+---
+## ESLint Config
+
+```json
+{
+	"rules": {
+		"one-var": [
+			"error",
+			{
+				"const": "never",
+				"initialized": "always",
+				"let": "never",
+				"var": "never"
+			}
+		]
+	}
+}
+
+```
+
+## Biome Config Before Migration
+
+```json
+{}
+
+```
+
+## Biome Config After Migration
+
+```json
+{ "linter": { "rules": { "preset": "none" } } }
+
+```

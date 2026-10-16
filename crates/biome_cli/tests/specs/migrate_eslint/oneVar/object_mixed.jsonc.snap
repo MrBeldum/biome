@@ -1,0 +1,28 @@
+---
+source: crates/biome_cli/src/execute/migrate/eslint_to_biome.rs
+expression: object_mixed.jsonc
+---
+## ESLint Config
+
+```json
+{
+	"rules": {
+		"one-var": ["error", { "const": "never", "let": "always", "var": "never" }]
+	}
+}
+
+```
+
+## Biome Config Before Migration
+
+```json
+{}
+
+```
+
+## Biome Config After Migration
+
+```json
+{ "linter": { "rules": { "preset": "none" } } }
+
+```

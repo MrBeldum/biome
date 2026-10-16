@@ -580,6 +580,11 @@ impl Deserializable for Rules {
                                 result.insert(Rule::NoUnusedVars(conf));
                             }
                         }
+                        "one-var" => {
+                            if let Some(conf) = RuleConf::deserialize(ctx, &value, name) {
+                                result.insert(Rule::OneVar(conf));
+                            }
+                        }
                         // Eslint plugin rules with options that we handle
                         "jest/consistent-test-it" | "vitest/consistent-test-it" => {
                             if let Some(conf) = RuleConf::deserialize(ctx, &value, name) {
@@ -1106,6 +1111,91 @@ impl From<NoRestrictedPropertyOption>
     }
 }
 
+/// A grouping mode of ESLint's `one-var` rule.
+#[derive(Clone, Copy, Debug, Deserializable, PartialEq, Eq)]
+pub(crate) enum OneVarMode {
+    #[deserializable(rename = "always")]
+    Always,
+    #[deserializable(rename = "never")]
+    Never,
+    #[deserializable(rename = "consecutive")]
+    Consecutive,
+}
+
+/// The object form of ESLint's `one-var` option.
+///
+/// Every field is optional: ESLint leaves a declaration kind unenforced when
+/// its key is absent.
+#[derive(Debug, Default, Deserializable)]
+#[deserializable(unknown_fields = "allow")]
+pub(crate) struct OneVarObjectOptions {
+    var: Option<OneVarMode>,
+    #[deserializable(rename = "let")]
+    let_mode: Option<OneVarMode>,
+    #[deserializable(rename = "const")]
+    const_mode: Option<OneVarMode>,
+    using: Option<OneVarMode>,
+    #[deserializable(rename = "awaitUsing")]
+    await_using: Option<OneVarMode>,
+    initialized: Option<OneVarMode>,
+    uninitialized: Option<OneVarMode>,
+}
+
+/// The option of ESLint's `one-var` rule: a single grouping mode, or an
+/// object with one mode per declaration kind.
+#[derive(Debug)]
+pub(crate) enum OneVarOptions {
+    Mode(OneVarMode),
+    Object(OneVarObjectOptions),
+}
+
+impl Deserializable for OneVarOptions {
+    fn deserialize(
+        ctx: &mut dyn DeserializationContext,
+        value: &impl DeserializableValue,
+        name: &str,
+    ) -> Option<Self> {
+        if value.visitable_type()? == DeserializableType::Str {
+            OneVarMode::deserialize(ctx, value, name).map(Self::Mode)
+        } else {
+            OneVarObjectOptions::deserialize(ctx, value, name).map(Self::Object)
+        }
+    }
+}
+
+impl OneVarOptions {
+    /// Returns `true` when the option requires every declaration to use a
+    /// single declarator, which is what Biome's `useSingleVarDeclarator`
+    /// enforces.
+    ///
+    /// In the object form, `initialized` and `uninitialized` override the
+    /// per-kind modes when present, and a kind whose mode resolves to
+    /// nothing is unenforced, so every kind must resolve to `never` for
+    /// both initialized and uninitialized declarations.
+    pub(crate) fn is_never(&self) -> bool {
+        match self {
+            Self::Mode(mode) => matches!(mode, OneVarMode::Never),
+            Self::Object(options) => [
+                options.var,
+                options.let_mode,
+                options.const_mode,
+                options.using,
+                options.await_using,
+            ]
+            .iter()
+            .all(|kind| {
+                matches!(
+                    (
+                        options.initialized.or(*kind),
+                        options.uninitialized.or(*kind)
+                    ),
+                    (Some(OneVarMode::Never), Some(OneVarMode::Never))
+                )
+            }),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub(crate) enum Rule {
     /// Any rule without its options.
@@ -1121,6 +1211,7 @@ pub(crate) enum Rule {
     NoRestrictedProperties(RuleConf<Box<NoRestrictedPropertyOption>>),
     NoRestrictedGlobals(RuleConf<Box<NoRestrictedGlobal>>),
     NoUnusedVars(RuleConf<NoUnusedVarsOptions>),
+    OneVar(RuleConf<OneVarOptions>),
     // Eslint plugins
     JestConsistentTestIt(RuleConf<eslint_jest::ConsistentTestItOptions>),
     Jsxa11yArioaRoles(RuleConf<Box<eslint_jsxa11y::AriaRoleOptions>>),
@@ -1161,6 +1252,7 @@ impl Rule {
             Self::NoRestrictedProperties(_) => Cow::Borrowed("no-restricted-properties"),
             Self::NoRestrictedGlobals(_) => Cow::Borrowed("no-restricted-globals"),
             Self::NoUnusedVars(_) => Cow::Borrowed("no-unused-vars"),
+            Self::OneVar(_) => Cow::Borrowed("one-var"),
             Self::JestConsistentTestIt(_) => Cow::Borrowed("jest/consistent-test-it"),
             Self::Jsxa11yArioaRoles(_) => Cow::Borrowed("jsx-a11y/aria-role"),
             Self::ReactForbidElements(_) => Cow::Borrowed("react/forbid-elements"),

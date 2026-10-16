@@ -997,6 +997,29 @@ fn migrate_eslint_rule(
                 }
             }
         }
+        eslint_eslint::Rule::OneVar(conf) => {
+            // Without an option, ESLint defaults to "always", which
+            // `useSingleVarDeclarator` cannot express: it enforces the
+            // opposite direction. A disabled rule enforces nothing, so it
+            // migrates like any other disabled rule.
+            let migrates = matches!(conf.severity(), eslint_eslint::Severity::Off)
+                || match &conf {
+                    eslint_eslint::RuleConf::Severity(_) => false,
+                    eslint_eslint::RuleConf::Option(_, options) => options.is_never(),
+                    eslint_eslint::RuleConf::Options(_, options, _) => options.is_never(),
+                    eslint_eslint::RuleConf::Spread(_, options) => {
+                        options.first().is_some_and(|options| options.is_never())
+                    }
+                };
+            if migrates {
+                let _ = migrate_eslint_any_rule(rules, &name, conf.severity(), opts, results);
+            } else {
+                results.unsupported.insert(
+                    EslintRuleName::from_str(&name),
+                    UnsupportedRuleReason::KnownSourceNotImplemented,
+                );
+            }
+        }
         eslint_eslint::Rule::ReactForbidElements(conf) => {
             if migrate_eslint_any_rule(rules, &name, conf.severity(), opts, results)
                 && !matches!(conf.severity(), eslint_eslint::Severity::Off)
@@ -1837,6 +1860,29 @@ mod tests {
                 .unsupported
                 .get(&EslintRuleName::from_str("svelte/block-lang")),
             Some(&UnsupportedRuleReason::NotApplicable),
+        );
+    }
+
+    #[test]
+    fn one_var_without_never_option_is_not_implemented() {
+        let rules = Rules(
+            [Rule::OneVar(RuleConf::Severity(Severity::Error))]
+                .into_iter()
+                .collect(),
+        );
+        let options = MigrationOptions {
+            include_inspired: true,
+            include_nursery: true,
+        };
+        let mut results = MigrationResults::default();
+        let _ = rules.into_biome_rules(&Default::default(), &options, &mut results);
+
+        assert!(results.migrated.is_empty());
+        assert_eq!(
+            results
+                .unsupported
+                .get(&EslintRuleName::from_str("one-var")),
+            Some(&UnsupportedRuleReason::KnownSourceNotImplemented),
         );
     }
 

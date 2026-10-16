@@ -1,0 +1,8 @@
+{
+  "biome": {},
+  "eslint": {
+    "rules": {
+      "one-var": ["error", { "var": "never", "let": "never", "const": "never" }]
+    }
+  }
+}
