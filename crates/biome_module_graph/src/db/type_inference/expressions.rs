@@ -192,7 +192,7 @@ impl<'db> ResolutionCtx<'db, '_> {
                     return Some(ty);
                 }
                 let subject = self.resolve(&expression.ty);
-                match &expression.destructure_field {
+                let resolved = match &expression.destructure_field {
                     RawDestructureField::Index(index) => {
                         self.resolve_element_type_at_index(subject, *index)
                     }
@@ -205,6 +205,11 @@ impl<'db> ResolutionCtx<'db, '_> {
                     RawDestructureField::RestFrom(index) => {
                         self.resolve_element_types_from_index(subject, *index)
                     }
+                };
+                if expression.has_initializer {
+                    resolved.map(|ty| self.type_without_undefined(ty))
+                } else {
+                    resolved
                 }
             }
             RawTypeofExpression::Index(expression) => {
@@ -328,7 +333,7 @@ impl<'db> ResolutionCtx<'db, '_> {
                     expression.alternate,
                 ),
             InferredTypeofExpression::Destructure(expression) => {
-                match &expression.destructure_field {
+                let resolved = match &expression.destructure_field {
                     RawDestructureField::Index(index) => {
                         self.resolve_element_type_at_index(expression.ty, *index)
                     }
@@ -341,6 +346,11 @@ impl<'db> ResolutionCtx<'db, '_> {
                     RawDestructureField::RestFrom(index) => {
                         self.resolve_element_types_from_index(expression.ty, *index)
                     }
+                };
+                if expression.has_initializer {
+                    resolved.map(|ty| self.type_without_undefined(ty))
+                } else {
+                    resolved
                 }
             }
             InferredTypeofExpression::Index(expression) => {

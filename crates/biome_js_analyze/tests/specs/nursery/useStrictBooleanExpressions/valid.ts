@@ -36,3 +36,15 @@ function impossible(value: never) {
 function branded(value: boolean & { readonly brand: unique symbol }) {
     if (value) {}
 }
+function destructuredDefaults(options?: { someField?: boolean }) {
+    const { someField = false } = options ?? {};
+    if (someField) {}
+}
+function renamedDestructuredDefaults(options?: { someField?: boolean }) {
+    const { someField: aliased = false } = options ?? {};
+    if (aliased) {}
+}
+function arrayDestructuredDefaults(values?: (boolean | undefined)[]) {
+    const [first = false] = values ?? [];
+    if (first) {}
+}

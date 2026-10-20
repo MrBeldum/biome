@@ -1440,6 +1440,12 @@ pub struct TypeofDestructureExpression {
 
     /// The field being destructured.
     pub destructure_field: DestructureField,
+
+    /// Whether the binding element has a default initializer.
+    ///
+    /// A default initializer applies when the destructured value is
+    /// `undefined`, so `undefined` is excluded from the resulting type.
+    pub has_initializer: bool,
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]

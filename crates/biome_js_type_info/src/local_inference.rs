@@ -90,6 +90,7 @@ impl TypeData {
         let reference = collector.reference_to_registered_data(self);
         match elem {
             AnyJsArrayBindingPatternElement::JsArrayBindingPatternElement(elem) => {
+                let has_initializer = elem.init().is_some();
                 match elem.pattern().ok()? {
                     AnyJsBindingPattern::AnyJsBinding(binding) => Some({
                         let binding = binding.as_js_identifier_binding()?;
@@ -99,15 +100,24 @@ impl TypeData {
                             collector.reference_to_owned_data(Self::destructuring_of(
                                 reference,
                                 DestructureField::Index(i),
+                                has_initializer,
                             )),
                         )])
                     }),
                     AnyJsBindingPattern::JsArrayBindingPattern(pattern) => Some({
-                        let data = Self::destructuring_of(reference, DestructureField::Index(i));
+                        let data = Self::destructuring_of(
+                            reference,
+                            DestructureField::Index(i),
+                            has_initializer,
+                        );
                         data.apply_array_binding_pattern(collector, scope_id, &pattern)
                     }),
                     AnyJsBindingPattern::JsObjectBindingPattern(pattern) => Some({
-                        let data = Self::destructuring_of(reference, DestructureField::Index(i));
+                        let data = Self::destructuring_of(
+                            reference,
+                            DestructureField::Index(i),
+                            has_initializer,
+                        );
                         data.apply_object_binding_pattern(collector, scope_id, &pattern)
                     }),
                 }
@@ -122,11 +132,13 @@ impl TypeData {
                             collector.reference_to_owned_data(Self::destructuring_of(
                                 reference,
                                 DestructureField::RestFrom(i),
+                                false,
                             )),
                         )])
                     }),
                     AnyJsBindingPattern::JsArrayBindingPattern(pattern) => Some({
-                        let data = Self::destructuring_of(reference, DestructureField::RestFrom(i));
+                        let data =
+                            Self::destructuring_of(reference, DestructureField::RestFrom(i), false);
                         data.apply_array_binding_pattern(collector, scope_id, &pattern)
                     }),
                     AnyJsBindingPattern::JsObjectBindingPattern(_pattern) => {
@@ -209,6 +221,7 @@ impl TypeData {
         match member {
             AnyJsObjectBindingPatternMember::JsObjectBindingPatternProperty(prop) => {
                 let member_name = member_name?;
+                let has_initializer = prop.init().is_some();
                 match prop.pattern().ok()? {
                     AnyJsBindingPattern::AnyJsBinding(binding) => Some({
                         let binding = binding.as_js_identifier_binding()?;
@@ -218,28 +231,37 @@ impl TypeData {
                             collector.reference_to_owned_data(Self::destructuring_of(
                                 reference,
                                 DestructureField::Name(member_name),
+                                has_initializer,
                             )),
                         )])
                     }),
                     AnyJsBindingPattern::JsArrayBindingPattern(pattern) => Some({
-                        let data =
-                            Self::destructuring_of(reference, DestructureField::Name(member_name));
+                        let data = Self::destructuring_of(
+                            reference,
+                            DestructureField::Name(member_name),
+                            has_initializer,
+                        );
                         data.apply_array_binding_pattern(collector, scope_id, &pattern)
                     }),
                     AnyJsBindingPattern::JsObjectBindingPattern(pattern) => Some({
-                        let data =
-                            Self::destructuring_of(reference, DestructureField::Name(member_name));
+                        let data = Self::destructuring_of(
+                            reference,
+                            DestructureField::Name(member_name),
+                            has_initializer,
+                        );
                         data.apply_object_binding_pattern(collector, scope_id, &pattern)
                     }),
                 }
             }
-            AnyJsObjectBindingPatternMember::JsObjectBindingPatternShorthandProperty(_) => Some({
+            AnyJsObjectBindingPatternMember::JsObjectBindingPatternShorthandProperty(prop) => Some({
                 let member_name = member_name?;
+                let has_initializer = prop.init().is_some();
                 Box::new([(
                     member_name.clone(),
                     collector.reference_to_owned_data(Self::destructuring_of(
                         reference,
                         DestructureField::Name(member_name),
+                        has_initializer,
                     )),
                 )])
             }),
@@ -252,6 +274,7 @@ impl TypeData {
                     collector.reference_to_owned_data(Self::destructuring_of(
                         reference,
                         DestructureField::RestExcept(names.iter().cloned().collect()),
+                        false,
                     )),
                 )])
             }),
@@ -260,11 +283,16 @@ impl TypeData {
         }
     }
 
-    fn destructuring_of(ty: TypeReference, destructure_field: DestructureField) -> Self {
+    fn destructuring_of(
+        ty: TypeReference,
+        destructure_field: DestructureField,
+        has_initializer: bool,
+    ) -> Self {
         Self::TypeofExpression(Box::new(TypeofExpression::Destructure(
             TypeofDestructureExpression {
                 ty,
                 destructure_field,
+                has_initializer,
             },
         )))
     }

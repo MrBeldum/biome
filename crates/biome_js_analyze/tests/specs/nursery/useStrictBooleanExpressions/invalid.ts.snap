@@ -1,5 +1,5 @@
 ---
-source: crates/biome_js_analyze/tests/spec_tests.rs
+source: tests/spec_tests.rs
 expression: invalid.ts
 ---
 # Input
@@ -37,6 +37,10 @@ function nullableBigint(value: bigint | null) {
 }
 function branded(value: (boolean & { readonly brand: unique symbol }) | undefined) {
     if (value) {}
+}
+function destructuredWithoutDefaults(options?: { someField?: boolean }) {
+    const { someField } = options ?? {};
+    if (someField) {}
 }
 
 ```
@@ -514,7 +518,28 @@ invalid.ts:33:9 lint/nursery/useStrictBooleanExpressions ━━━━━━━�
   > 33 │     if (value) {}
        │         ^^^^^
     34 │ }
-    35 │ 
+    35 │ function destructuredWithoutDefaults(options?: { someField?: boolean }) {
+  
+  i This check treats false and nullish values alike.
+  
+  i Compare with true or provide an explicit default with ?? false.
+  
+  i This rule belongs to the nursery group, which means it is not yet stable and may change in the future. Visit https://biomejs.dev/linter/#nursery for more information.
+  
+
+```
+
+```
+invalid.ts:37:9 lint/nursery/useStrictBooleanExpressions ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i This condition uses a nullable boolean.
+  
+    35 │ function destructuredWithoutDefaults(options?: { someField?: boolean }) {
+    36 │     const { someField } = options ?? {};
+  > 37 │     if (someField) {}
+       │         ^^^^^^^^^
+    38 │ }
+    39 │ 
   
   i This check treats false and nullish values alike.
   

@@ -1922,6 +1922,7 @@ impl<'db> TypeDataSlotReplacements<'db> {
                 TypeofExpression::Destructure(TypeofDestructureExpression {
                     ty: self.take_type()?,
                     destructure_field: expression.destructure_field.clone(),
+                    has_initializer: expression.has_initializer,
                 })
             }
             TypeofExpression::Index(expression) => TypeofExpression::Index(TypeofIndexExpression {
@@ -2443,6 +2444,7 @@ pub struct TypeofConditionalExpression<'db> {
 pub struct TypeofDestructureExpression<'db> {
     pub ty: TypeData<'db>,
     pub destructure_field: raw::DestructureField,
+    pub has_initializer: bool,
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq, salsa::SalsaValue)]
@@ -3080,6 +3082,7 @@ fn convert_typeof_expression<'db>(
             TypeofExpression::Destructure(TypeofDestructureExpression {
                 ty: resolve_reference(&expression.ty),
                 destructure_field: expression.destructure_field.clone(),
+                has_initializer: expression.has_initializer,
             })
         }
         raw::TypeofExpression::Index(expression) => {
@@ -3864,6 +3867,7 @@ mod tests {
                 TypeofExpression::Destructure(TypeofDestructureExpression {
                     ty: s.next(),
                     destructure_field: raw::DestructureField::Index(0),
+                    has_initializer: false,
                 }),
             )
         });

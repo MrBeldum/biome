@@ -32,3 +32,7 @@ function nullableBigint(value: bigint | null) {
 function branded(value: (boolean & { readonly brand: unique symbol }) | undefined) {
     if (value) {}
 }
+function destructuredWithoutDefaults(options?: { someField?: boolean }) {
+    const { someField } = options ?? {};
+    if (someField) {}
+}
