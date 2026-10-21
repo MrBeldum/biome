@@ -1,0 +1,12 @@
+---
+source: crates/biome_js_analyze/tests/spec_tests.rs
+expression: validImports.ts
+---
+# Input
+```ts
+// should not generate diagnostics
+import * as ns from "./exports";
+const { optionalFlag = false } = ns;
+if (optionalFlag) {}
+
+```

@@ -185,25 +185,26 @@ impl<'db> ResolutionCtx<'db, '_> {
                 self.resolve_conditional_expression(test, consequent, alternate)
             }
             RawTypeofExpression::Destructure(expression) => {
-                if self.import_resolution.is_on_demand()
+                let resolved = if self.import_resolution.is_on_demand()
                     && let RawDestructureField::Name(name) = &expression.destructure_field
                     && let Some(ty) = self.resolve_namespace_import_member(&expression.ty, name)
                 {
-                    return Some(ty);
-                }
-                let subject = self.resolve(&expression.ty);
-                let resolved = match &expression.destructure_field {
-                    RawDestructureField::Index(index) => {
-                        self.resolve_element_type_at_index(subject, *index)
-                    }
-                    RawDestructureField::Name(name) => {
-                        self.resolve_static_member_expression(subject, name.text())
-                    }
-                    RawDestructureField::RestExcept(names) => {
-                        Some(self.resolve_rest_except_expression(subject, names))
-                    }
-                    RawDestructureField::RestFrom(index) => {
-                        self.resolve_element_types_from_index(subject, *index)
+                    Some(ty)
+                } else {
+                    let subject = self.resolve(&expression.ty);
+                    match &expression.destructure_field {
+                        RawDestructureField::Index(index) => {
+                            self.resolve_element_type_at_index(subject, *index)
+                        }
+                        RawDestructureField::Name(name) => {
+                            self.resolve_static_member_expression(subject, name.text())
+                        }
+                        RawDestructureField::RestExcept(names) => {
+                            Some(self.resolve_rest_except_expression(subject, names))
+                        }
+                        RawDestructureField::RestFrom(index) => {
+                            self.resolve_element_types_from_index(subject, *index)
+                        }
                     }
                 };
                 if expression.has_initializer {
